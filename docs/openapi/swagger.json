@@ -1,0 +1,61 @@
+{
+    "components": {
+        "securitySchemes": {
+            "Cognito": {
+                "description": "Cognito JWT (use \"Bearer XYZ\" as value)",
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey"
+            }
+        }
+    },
+    "info": {
+        "title": "API go template",
+        "version": ""
+    },
+    "externalDocs": {
+        "description": "",
+        "url": ""
+    },
+    "paths": {
+        "/api/go-api-template/sample": {
+            "get": {
+                "description": "Returns a sample message",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Cognito": []
+                    }
+                ],
+                "summary": "Sample handler",
+                "tags": [
+                    "Sample"
+                ]
+            }
+        }
+    },
+    "openapi": "3.1.0"
+}

@@ -1,0 +1,15 @@
+with-expecter: true
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+
+packages:
+  github.com/corentin-verquin/go-api-template/internal/sample:
+    interfaces:
+      ServiceItf:
+        config:
+          dir: "internal/sample/mocks"
+          outpkg: mocks
+          filename: "service.go"
+          mockname: "MockService"
+ 

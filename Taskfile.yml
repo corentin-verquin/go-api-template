@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+vars:
+  APPLICATION_NAME: go-api-template
+  VERSION: '{{ .VERSION  | default "dev" }}'
+
+includes:
+  api:
+    taskfile: ./taskfile.go.yml
+    flatten: true
+    vars:
+      APPLICATION_NAME: "{{.APPLICATION_NAME }}"
+      GOARCH: '{{.GOARCH | default "amd64,arm64"}}'
+
+tasks:
+  dev:
+    desc: "Run the API in dev mode (with hot reload via wgo)"
+    preconditions:
+      - command -v wgo
+    env:
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: eu-west-1
+    cmds:
+      - wgo run .
+
+  start:localstack:
+    desc: "Start LocalStack (with Cognito)"
+    cmds:
+      - docker compose up -d
+      - ./.dev/cognito-local/init-cognito.sh
+
+  list:parameters:
+    desc: "List all SSM parameters in LocalStack"
+    env:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: eu-west-1
+    cmd: |- 
+      aws --no-cli-pager --endpoint-url http://localhost:4566 \
+        ssm get-parameters-by-path \
+        --path /go-api-template/local \
+        --with-decryption \
+        --query "Parameters[].{Name:Name,Value:Value}" \
+        --output table
+
+  generate:jwt:
+    desc: "Generate a JWT token for testing (authenticates the test user against cognito-local)"
+    cmd: ./.dev/cognito-local/generate-jwt.sh
+    
+    

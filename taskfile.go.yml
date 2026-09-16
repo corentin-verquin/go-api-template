@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+silent: true
+
+vars:
+  COMMIT_HASH:
+    sh: git rev-parse HEAD
+  BUILD_TIME:
+    sh: date --rfc-3339=ns
+  MODULE_PATH:
+    sh: go list -m
+
+tasks:
+  default:
+    desc: Run tests, generate code and build the project
+    cmds:
+      - task: generate
+      - task: test
+      - task: build
+
+  test:
+    desc: Run tests
+    preconditions:
+      - command -v gotestsum
+    cmd: |-
+      go test -v -coverprofile .report_coverage.out -json -count=1 ./... | tee .report_tests.json \
+      | gotestsum --raw-command cat
+
+  generate:
+    desc: Generate code
+    preconditions:
+      - command -v mockery
+      - command -v swag
+    sources:
+      - "**/*.go"
+      - exclude: "**/mocks/**"
+      - exclude: "docs/openapi/docs.go"
+      - ".mockery.yaml"
+    generates:
+      - "internal/**/mocks/*.go"
+      - "docs/openapi/docs.go"
+      - "docs/openapi/swagger.json"
+      - "docs/openapi/swagger.yaml"
+    cmds:
+      - go generate ./...    
+      - mockery
+
+  build:
+    desc: Build the project    
+    requires:
+      vars:
+        - APPLICATION_NAME
+        - VERSION
+        - GOARCH
+    cmds:
+      - for: { var: GOARCH, split: "," }
+        task: build-arch
+        vars:
+          ARCH: '{{.ITEM}}'    
+
+  build-arch:
+    internal: true
+    silent: false
+    label: 'build-{{.ARCH}}'
+    sources:
+      - ./**/*.go
+    generates:
+      - dist/{{.ARCH}}/{{.APPLICATION_NAME}}
+    env:
+      CGO_ENABLED: "0"
+      GOOS: "linux"
+    cmds:
+      - |-
+        export GOARCH={{.ARCH}}
+        go build \
+          -o "dist/{{.ARCH}}/{{.APPLICATION_NAME}}" \
+          -trimpath \
+          -ldflags "-s -w -extldflags '-static' \
+          -X '{{.MODULE_PATH}}/internal/common/config.ApplicationName={{.APPLICATION_NAME}}' \
+          -X '{{.MODULE_PATH}}/internal/common/config.ApplicationVersion={{.VERSION}}' \
+          -X '{{.MODULE_PATH}}/internal/common/config.ApplicationGitHash={{.COMMIT_HASH}}' \
+          -X '{{.MODULE_PATH}}/internal/common/config.ApplicationBuildDate={{.BUILD_TIME}}'" \
+          .
+
+  fmt:
+    desc: Format the code
+    preconditions:
+      - command -v swag
+    cmds:
+      - go fmt ./...
+      - swag fmt

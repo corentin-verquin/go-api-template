@@ -1,0 +1,47 @@
+# Usage:
+#   docker compose up -d
+#
+# Then run the API on the host with:
+#   AWS_ENDPOINT_URL=http://localhost:4566 \
+#   AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=eu-west-1 \
+#   APP_PROFILE=local \
+#   go run main.go
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: template-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  localstack:
+    image: localstack/localstack:3
+    container_name: template-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: ssm
+      DEBUG: "0"
+      DEFAULT_REGION: eu-west-1
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - ./.dev/localstack/init-ssm.sh:/etc/localstack/init/ready.d/init-ssm.sh
+ 
+  cognito-local:
+    image: jagregory/cognito-local:latest
+    container_name: template-cognito
+    restart: unless-stopped
+    ports:
+      - "9229:9229"
+    volumes:
+      - template-cognito-data:/app/.cognito
+      - ./.dev/cognito-local/config.json:/app/.cognito/config.json
+
+volumes:  
+  mongo-data:
+  localstack-data:
+  template-cognito-data:

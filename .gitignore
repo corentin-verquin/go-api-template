@@ -1,0 +1,6 @@
+.env
+dist
+.report_coverage.out
+.report_tests.json
+.task
+tmp
